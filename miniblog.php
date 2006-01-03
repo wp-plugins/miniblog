@@ -3,8 +3,8 @@
 Plugin Name: Miniblog
 Plugin URI: http://mediumbagel.org/?page_id=16
 Description: Allows miniature blogs, links, notes, asides, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated. This plugin was originally authored by <a href="http://www.nmyworld.com/">Ryan Poe</a>.
-Author: Thomas Cort <http://mediumbagel.org>
-Version: 0.6
+Version: 0.7
+Author: Thomas Cort
 Author URI: http://mediumbagel.org/
 */
 
@@ -13,17 +13,23 @@ if(!function_exists('miniblog_return_entries')) {
 	function miniblog_return_entries($limit = 5, $offset = 0, $identifier = '', $sortby = '_date', $filter = TRUE) {
 		global $wpdb, $table_prefix;
 		
-		if(!is_numeric($offset)) $offset = 0;
-		if(!is_numeric($limit)) $limit = 5;
-		
+		if(!is_numeric($offset)) {
+			$offset = 0;
+		}
+
+		if(!is_numeric($limit)) {
+			$limit = 5;
+		}
+
 		$limit_q = $offset . ',' . ($offset + $limit);
 		
 		$identifier_q = '';
 		if($identifier) {
-			if(stristr($identifier, '%') !== FALSE)
+			if(stristr($identifier, '%') !== FALSE) {
 				$identifier_q = 'WHERE blog LIKE \'' . $identifier . '\'';
-			else
+			 } else {
 				$identifier_q = 'WHERE blog="' . $identifier . '"';
+			}
 		}
 		
 		/* Sort ordering */
@@ -37,18 +43,22 @@ if(!function_exists('miniblog_return_entries')) {
 		$sortby_q .= $sort_o;
 		
 		$results = $wpdb->get_results('SELECT * FROM ' . $table_prefix .
-										'miniblog ' . $identifier_q . ' ' . $sortby_q .
-										' LIMIT ' . $limit_q);
+						'miniblog ' . $identifier_q . ' ' . $sortby_q .
+						' LIMIT ' . $limit_q);
 	
 		if($results) {
 			$cnt = count($results);
 			for($i = 0; $i < $cnt; $i++) {
-				$results[$i]->blog = stripslashes($results[$i]->blog);
+				$results[$i]->blog  = stripslashes($results[$i]->blog);
 				$results[$i]->title = apply_filters('the_title', stripslashes($results[$i]->title));
-				$results[$i]->url = stripslashes($results[$i]->url);
+				$results[$i]->url   = stripslashes($results[$i]->url);
+
 				if($results[$i]->text) {
-					if ($filter) $results[$i]->text = apply_filters('the_content', stripslashes($results[$i]->text));
-					else $results[$i]->text = stripslashes($results[$i]->text);
+					if ($filter) {
+						$results[$i]->text = apply_filters('the_content', stripslashes($results[$i]->text));
+					} else {
+						$results[$i]->text = stripslashes($results[$i]->text);
+					}
 				}
 			}
 		} else {
@@ -63,11 +73,13 @@ if(!function_exists('miniblog_return_entries')) {
 if(!function_exists('miniblog_list_entries')) {
 	function miniblog_list_entries($before = '<li>', $between = '<br />', $after = '</li>', $identifier = '', $limit = 5, $offset = 0, $sortby = '_date', $filter = TRUE) {
 		$entries = array();
-		$entry = '';
+		$entry   = '';
 		$entries = miniblog_return_entries($limit, $offset, $identifier, $sortby, $filter);
+
 		foreach($entries as $entry) {
 			$date = date("F j, Y", strtotime($entry->date));
 			echo $before;
+
 			if ($entry->title && $entry->url) {
 				echo '<a href="' . $entry->url . '">' . $entry->title . '</a>';
 			} elseif ($entry->title) {
@@ -77,10 +89,12 @@ if(!function_exists('miniblog_list_entries')) {
 			} else {
 				echo $date;
 			}
+
 			if(trim($entry->text)) {
 				echo $between;
 				echo str_replace("\n" , '', $entry->text);
 			}
+
 			echo $after . "\n";
 		}
 	}
@@ -126,10 +140,18 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 	if($_GET['page'] == basename(__FILE__)) {
 		/* This function echos the plugin page contents */
 		if (!function_exists('miniblog_render_plugin_page')) {
+
 			function miniblog_render_plugin_page($post_date='',$post_blog='',$post_title='',$post_url='',$post_text='', $post_id='') {
 				global $wpdb, $table_prefix;
-				if(!$post_id) $post_id = '-';
-				if(!$post_blog) $post_blog = 'default';
+
+				if(!$post_id) {
+					$post_id = '-';
+				}
+
+				if(!$post_blog) {
+					$post_blog = 'default';
+				}
+
 				/* Number of posts to list per page (editing pagination) */
 				$per_page = 50; ?>
 				<div class="wrap" style="text-align: center">
@@ -223,14 +245,18 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 						</tr>
 						<?php
 							if(is_numeric($_GET['p']) && $_GET['p'] > 1) {
-								$page = $_GET['p'];
-								$page_url = '&amp;p=' . $page;
+								$page           = $_GET['p'];
+								$page_url       = '&amp;p=' . $page;
 								$page_first_num = ($page-1)*$per_page;
-								if(!$page_first_num) $page_first_num = '0';
+
+								if(!$page_first_num) {
+									$page_first_num = '0';
+								}
+
 								$page_query = $page_first_num . ',' . ($page+$per_page);
 							} else {
-								$page = 1;
-								$page_url = '&amp;p=' . $page;
+								$page       = 1;
+								$page_url   = '&amp;p=' . $page;
 								$page_query = '0,' . ($page+$per_page);
 							}
 							$posts = $wpdb->get_results('SELECT id,blog,title,url FROM ' . $table_prefix . 'miniblog ORDER BY `date` DESC LIMIT ' . $page_query);
@@ -256,20 +282,26 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 							$prev_page_url = '';
 							$next_page_url = '';
 							if($page > 1) {
-								$prev_page = $page - 1;
+								$prev_page     = $page - 1;
 								$prev_page_url = '&amp;p=' . $prev_page;
-								$next_page = $page + 1;
+								$next_page     = $page + 1;
 								$next_page_num = (($next_page-1)*$per_page);
-								if(!$next_page_num) $next_page_num = '0';
+
+								if(!$next_page_num) {
+									$next_page_num = '0';
+								}
+
 								$next_page_query = $next_page_num . ',' . ($next_page+$per_page);
 							} else {
-								$next_page = 2;
+								$next_page       = 2;
 								$next_page_query = $per_page . ',' . ($next_page+$per_page);
 							}
 							/* Find out if there are more entries on the next page */
 							$are_more = $wpdb->get_results('SELECT id FROM ' . $table_prefix . 'miniblog LIMIT ' . $next_page_query);
 							if(count($are_more)) {
-								if(is_numeric($are_more[0]->id)) $next_page_url = '&amp;p=' . $next_page;
+								if(is_numeric($are_more[0]->id)) {
+									$next_page_url = '&amp;p=' . $next_page;
+								}
 							}
 						?>
 						<p style="text-align: right">
@@ -628,8 +660,9 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 						}
 					/* There's no ID specified, so it's to add a new entry */
 					} else {
+						$timedate = gmdate('Y-m-d H:i:s', (time() + (get_settings('gmt_offset') * 3600)));
 						if(!$wpdb->query('INSERT INTO ' . $table_prefix . 'miniblog SET
-									date=NOW(),
+									date="'. $timedate .'",
 									blog="' . mysql_escape_string($_POST['blog']) .'",
 									title="' . mysql_escape_string($_POST['title']) .'",
 									url="' . mysql_escape_string($_POST['url']) .'",
@@ -658,19 +691,19 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 				}
 			}
 		}
-	/* This isn't a plugin page, but WordPress is still calling this plugin (to be used in normal pages) */
-	} else {
-		/* nothing to see here. Move along */
 	}
 /* This isn't a plugin page and it's not being called from WordPress */
 } else {
 	if(isset($_GET['action'])) {
 		/* Just to make sure...again... */
 		if (get_magic_quotes_gpc()) {
-			foreach($_GET as $k => $v)
+			foreach($_GET as $k => $v) {
 				$_GET[$k] = stripslashes($v);
-			foreach($_POST as $k => $v)
+			}
+
+			foreach($_POST as $k => $v) {
 				$_POST[$k] = stripslashes($v);
+			}
 		}
 		/* Call up the WordPress configuration stuff */
 		$wordpress_dir = dirname(dirname(dirname(__FILE__)));
@@ -679,7 +712,9 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			$wordpress_dir . '"). You must put this plugin in
 			your plugins directory ("/wordpress/wp-content/plugins/").');
 		}
+
 		require_once($wordpress_dir . '/wp-config.php');
+
 		/* RSS display */
 		if($_GET['action'] == 'rss') {
 			/* Get the blog name and description (stupid stupid WordPress making me do this) */
@@ -788,6 +823,9 @@ if(!function_exists('miniblog_menu')) {
 		add_submenu_page('post.php', 'Miniblog', 'Miniblog', 9, basename(__FILE__), 'miniblog');
 	}
 }
-if(function_exists('add_action')) add_action('admin_menu', 'miniblog_menu');
+
+if(function_exists('add_action')) {
+	add_action('admin_menu', 'miniblog_menu');
+}
 
 ?>
