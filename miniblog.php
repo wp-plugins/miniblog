@@ -4,12 +4,8 @@ Plugin Name: Miniblog
 Plugin URI: http://www.nmyworld.com/wordpress/category/wordpress/
 Description: Allows miniature blogs, links, notes, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated.
 Author: Ryan Poe
-Version: 0.4
+Version: 0.5
 Author URI: http://www.nmyworld.com/
-
-fixed some bugs
-hopefully patched all SQL errors that miniblog was throwing
-added new parameter for each function - the filter parameter. determines rather or not if you want the content filtered
 */
 
 /* We always want to load these */
