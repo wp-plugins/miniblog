@@ -3,7 +3,7 @@
 Plugin Name: Miniblog
 Plugin URI: http://mediumbagel.org/?page_id=16
 Description: Allows miniature blogs, links, notes, asides, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated. This plugin was originally authored by <a href="http://www.nmyworld.com/">Ryan Poe</a>.
-Version: 0.7
+Version: 0.8
 Author: Thomas Cort
 Author URI: http://mediumbagel.org/
 */
@@ -21,7 +21,7 @@ if(!function_exists('miniblog_return_entries')) {
 			$limit = 5;
 		}
 
-		$limit_q = $offset . ',' . ($offset + $limit);
+		$limit_q = $offset . ',' . $limit;
 		
 		$identifier_q = '';
 		if($identifier) {
@@ -102,7 +102,7 @@ if(!function_exists('miniblog_list_entries')) {
 
 /* Creates the RSS feed URL to use in the href="" tag */
 if(!function_exists('miniblog_create_rss_url')) {
-	function miniblog_create_rss_url($limit = 5, $offset = 0, $identifier = '', $sortby = '_date', $title = '%site_name%', $description = '%site_description%') {
+	function miniblog_create_rss_url($limit = 5, $offset = 0, $identifier = '', $sortby = '_date', $title = '%site_name%', $description = '%site_description%', $version = 2) {
 		/* Get the blog URL */
 		ob_start();
 		bloginfo('url');
@@ -113,7 +113,27 @@ if(!function_exists('miniblog_create_rss_url')) {
 		$url = $url . '?action=rss&amp;n=' . $limit . '&amp;o=' . $offset;
 		$url = $url . '&amp;q=' . htmlentities(urlencode($identifier)) . '&amp;s=' . htmlentities(urlencode($sortby));
 		$url = $url . '&amp;t=' . htmlentities(urlencode($title)) . '&amp;d=' . htmlentities(urlencode($description));
+		$url = $url . '&amp;v=' . $version;
+
+		return $url;
+	}
+}
+
+/* Creates the Archive URL to use in the href="" tag */
+if(!function_exists('miniblog_create_archive_url')) {
+	function miniblog_create_archive_url($limit = 10, $offset = 0, $identifier = '', $sortby = '_date', $title = '') {
+		/* Get the blog URL */
+		ob_start();
+		bloginfo('url');
+		$url = ob_get_clean();
 		
+		/* Build new URL */
+		$url = $url . '/wp-content/plugins/' . basename(__FILE__);
+		$url = $url . '?action=archive&amp;limit=' . $limit . '&amp;offset=' . $offset;
+		$url = ($identifier != '') ? $url . '&amp;category=' . htmlentities(urlencode($identifier)) : $url;
+		$url = $url . "&amp;sortby=" . htmlentities(urlencode($sortby));
+		$url = ($title != '') ? $url . '&amp;title=' . htmlentities(urlencode($title)) : $url;
+
 		return $url;
 	}
 }
@@ -372,7 +392,7 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 							<li><strong>Before</strong>: text to display before every entry's title link. Default is '&lt;li&gt;'.</li>
 							<li><strong>Between</strong>: text to display between every entry's title link and text. Default is '&lt;br /&gt;'.</li>
 							<li><strong>After</strong>: text to display after every entry's text. Default is '&lt;/li&gt;'.</li>
-							<li><strong>Blog Identifier</strong>: this determines which entries to call specificied
+							<li><strong>Blog Identifier</strong>: this determines which entries to call specified
 								by an entry's "Blog Identifier" field. This can be any text string. To retrieve all
 								field, leave blank (''). Default is blank ('').</li>
 							<li><strong>Limit</strong>: the number of entries to return. Default is 10.</li>
@@ -520,19 +540,21 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 					<h3><?php _e('miniblog_create_rss_url(...)'); ?></h3>
 					<p>
 					This function returns a URL to an RSS 2.0 feed specified by the parameters 
-					entered. Miniblog also supports RSS 0.92. To link to an RSS 0.92 feed you 
-					must append "&amp;v=0.92" to the result from miniblog_create_rss_url(...).
-					The parameters are exactly the same as the parameters of miniblog_return_entries() with two note-worthy exceptions:
+					entered. Miniblog also supports RSS 0.92. To return a URL to an RSS 0.92 
+					feed you must specify a version parameter of 0.92. 
+					The parameters for miniblog_create_rss_url() are exactly the same as the 
+					parameters of miniblog_return_entries() with a few note-worthy exceptions:
 						<ol>
-							<li><strong>Limit</strong>...</li>
-							<li><strong>Offset</strong>: ...</li>
-							<li><strong>Blog Identifier</strong>: ...</li>
-							<li><strong>Sort Field</strong>: ...</li>
-							<li><strong>RSS Feed Title</strong>: this field determines the title of the RSS feed. Default is %site_name%</li>
+							<li><strong>Limit</strong>: the number of entries to return. Default is 10.</li>
+							<li><strong>Offset</strong>:  the number of entries to skip before returning. For instance, a limit of 5 with an offset of 5 will return entries 6 through 10. Default is 0.</li>
+							<li><strong>Blog Identifier</strong>: this determines which entries to call specificied by an entry's "Blog Identifier" field. This can be any text string. To retrieve all field, leave blank (''). Default is blank ('').</li>
+							<li><strong>Sort Field</strong>: this is the field that determines the order in which entries are returned. Prepending an underscore (_) to the parameter sorts the entries descending (latest first) as opposed to ascending (earliest first).</li>
+							<li><strong>RSS Feed Title</strong>: this field determines the title of the RSS feed. Default is %site_name%.</li>
 							<li><strong>RSS Feed Description</strong>: this field determines the description of the RSS feed. Default is %site_description%.</li>
+							<li><strong>Version</strong>: this field determines which RSS version to use. 2.0 and 0.92 are supported. Default is 2.0.</li>
 						</ol>
 						<p>
-							The two new fields can have the following template tags within them:
+							Fields 5 and 6 can have the following template tags within them:
 							<ul>
 								<li>%site_name% - the name of your blog specified in your options menu.</li>
 								<li>%site_description% - your blogs description specified in your options menu.</li>
@@ -543,43 +565,42 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 						<p class="code">
 							<code>
 								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_rss_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_rss_url">miniblog_create_rss_url</a></span><span style="color:#007700">()); </span><span style="color:#0000BB">?&gt;</span>"&gt;Miniblog RSS 2.0&lt;/a&gt;</span><br />
-								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_rss_url"  href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_rss_url">miniblog_create_rss_url</a></span><span style="color:#007700">()); </span><span style="color:#0000BB">?&gt;</span>&amp;amp;v=0.92"&gt;Miniblog RSS 0.92&lt;/a&gt;</span>
 							</code>
-							<p>This example will simply display the latest 5 miniblog entries that you've posted
-							with your site's title and description as the feed's description.</p>
 						</p>
 						<p class="code">
 							<code>
-								&lt;h2&gt;Asides&lt;/h2&gt;
-								<br />&lt;ul&gt;
-								<br />&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #0000BB">&lt;?php
-								<br />&nbsp;&nbsp;&nbsp;&nbsp;$asides </span><span style="color: #007700">= </span><span style="color: #0000BB">miniblog_return_entries</span><span style="color: #007700">(</span><span style="color: #0000BB">5</span><span style="color: #007700">, </span><span style="color: #0000BB">0</span><span style="color: #007700">, </span><span style="color: #DD0000">'aside'</span><span style="color: #007700">, </span><span style="color: #DD0000">'_Date'</span><span style="color: #007700">);
-								
-								<br />&nbsp;&nbsp;&nbsp;&nbsp;foreach(</span><span style="color: #0000BB">$asides </span><span style="color: #007700">as </span><span style="color: #0000BB">$aside</span><span style="color: #007700">) { </span><span style="color: #0000BB">?&gt;
-								<br /></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;li&gt;
-								<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;span&gt;&lt;a href="<span style="color: #0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color: #007700">(</span><span style="color: #0000BB">$aside</span><span style="color: #007700">-&gt;</span><span style="color: #0000BB">url</span><span style="color: #007700">); </span><span style="color: #0000BB">?&gt;</span>"&gt;<span style="color: #0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color: #007700">(</span><span style="color: #0000BB">$aside</span><span style="color: #007700">-&gt;</span><span style="color: #0000BB">title</span><span style="color: #007700">); </span><span style="color: #0000BB">?&gt;</span>&lt;/a&gt;&lt;/span&gt;
-								
-								<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color: #007700">(</span><span style="color: #0000BB">$aside</span><span style="color: #007700">-&gt;</span><span style="color: #0000BB">text</span><span style="color: #007700">); </span><span style="color: #0000BB">?&gt;
-								<br /></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/li&gt;
-								<br />&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #0000BB">&lt;?php </span><span style="color: #007700">} </span><span style="color: #0000BB">?&gt;
-								<br /></span>&lt;/ul&gt;
-								
-								<br /><span style="color: #0000BB">&lt;?php $feed_url </span><span style="color: #007700">= </span><span style="color: #0000BB">miniblog_create_rss_url</span><span style="color: #007700">(</span><span style="color: #0000BB">5</span><span style="color: #007700">, </span><span style="color: #0000BB">0</span><span style="color: #007700">, </span><span style="color: #DD0000">'aside'</span><span style="color: #007700">, </span><span style="color: #DD0000">'_Date'</span><span style="color: #007700">); </span><span style="color: #0000BB">?&gt;
-								<br /></span>&lt;p id="asidefeed"&gt;
-								<br />&nbsp;&nbsp;&nbsp;&nbsp;&lt;a href="<span style="color: #0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color: #007700">(</span><span style="color: #0000BB">$feed_url</span><span style="color: #007700">); </span><span style="color: #0000BB">?&gt;</span>"&gt;rss&lt;/a&gt;
-								
-								<br />&lt;/p&gt;</span>
+								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_rss_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_rss_url">miniblog_create_rss_url</a></span><span style="color:#007700">(</span><span style="color:#0000BB">5</span><span style="color:#007700">, </span><span style="color:#0000BB">0</span><span style="color:#007700">, </span><span style="color:#DD0000">'aside'</span><span style="color:#007700">, </span><span style="color:#DD0000">'_date'</span><span style="color:#007700">, </span><span style="color:#DD0000">"%site_name%'s Asides"</span><span style="color:#007700">, </span><span style="color:#DD0000">"%site_name% (%site_description%) has asides. These are them."</span><span style="color:#007700">, </span><span style="color:#0000BB">0.92</span><span style="color:#007700">)</span><span style="color:#007700">); </span><span style="color:#0000BB">?&gt;</span>"&gt;Miniblog RSS 0.92&lt;/a&gt;</span>
 							</code>
-							<p>This example is what I use on my index page to show asides. Notice at the bottom how I use the
-							miniblog_create_rss_url().</p>
-						</p>
-						<p class="code">
-							<code>
-								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_rss_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_rss_url">miniblog_create_rss_url</a></span><span style="color:#007700">(</span><span style="color:#0000BB">5</span><span style="color:#007700">, </span><span style="color:#0000BB">0</span><span style="color:#007700">, </span><span style="color:#DD0000">'aside'</span><span style="color:#007700">, </span><span style="color:#DD0000">'_date'</span><span style="color:#007700">, </span><span style="color:#DD0000">"%site_name%'s Asides"</span><span style="color:#007700">, </span><span style="color:#DD0000">"%site_name% (%site_description%) has asides. These are them."</span><span style="color:#007700">)); </span><span style="color:#0000BB">?&gt;</span>"&gt;Miniblog RSS&lt;/a&gt;</span>
-							</code>
-							<p>This example will output an RSS feed link with the title of "nmyworld's asides" and a description
-							of "nmyworld (Just another WordPress blog) has asides. These are them." Your blog will show different
+							<p>This example will output an RSS feed link with the title 
+							of "Medium Bagel's asides" and a description
+							of "Medium Bagel (Just another WordPress blog) has asides. These 
+							are them." The RSS feed will be RSS v0.92 compliant. Your blog will show different
 							results (because your blog has different settings).</p>
+						</p>
+					</p>
+					<h3><?php _e('miniblog_create_archive_url(...)'); ?></h3>
+					<p>
+					This function returns a URL to an archive of posts specified by the parameters entered. 
+					The parameters for miniblog_create_archive_url() are similar to the 
+					parameters of miniblog_create_rss_url() with a few note-worthy exceptions:
+						<ol>
+							<li><strong>Limit</strong>: the number of entries to return. Default is 10.</li>
+							<li><strong>Offset</strong>:  the number of entries to skip before returning. For instance, a limit of 5 with an offset of 5 will return entries 6 through 10. Default is 0.</li>
+							<li><strong>Blog Identifier</strong>: this determines which entries to call specificied by an entry's "Blog Identifier" field. This can be any text string. To retrieve all field, leave blank (''). Default is blank ('').</li>
+							<li><strong>Sort Field</strong>: this is the field that determines the order in which entries are returned. Prepending an underscore (_) to the parameter sorts the entries descending (latest first) as opposed to ascending (earliest first).</li>
+							<li><strong>Title</strong>: this is the field that determines the title to use on the archive page. Default is Miniblog Archive.</li>
+						</ol>
+					</p>
+					<p>Examples: <br />
+						<p class="code">
+							<code>
+								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_archive_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_archive_url">miniblog_create_archive_url</a></span><span style="color:#007700">()); </span><span style="color:#0000BB">?&gt;</span>"&gt;Miniblog Archive&lt;/a&gt;</span><br />
+							</code>
+						</p>
+						<p class="code">
+							<code>
+ 								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_archive_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_archive_url">miniblog_create_archive_url</a></span><span style="color:#007700">(</span><span style="color:#0000BB">5</span><span style="color:#007700">, </span><span style="color:#0000BB">0</span><span style="color:#007700">, </span><span style="color:#DD0000">'aside'</span><span style="color:#007700">, </span><span style="color:#DD0000">'_date'</span><span style="color:#007700">, </span><span style="color:#DD0000">'Asides Archive'</span><span style="color:#007700">)</span><span style="color:#007700">); </span><span style="color:#0000BB">?&gt;</span>"&gt;Asides Archive&lt;/a&gt;</span>
+							</code>
 						</p>
 					</p>
 				</div>
@@ -813,6 +834,77 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			echo "\t</channel>\n";
 			print "</rss>"; 
 
+		} else if ($_REQUEST['action'] == "archive") {
+			global $wpdb, $table_prefix;
+
+			$sortby =  isset($_REQUEST['sortby']) ? $_REQUEST['sortby'] : '_date';
+			$limit  = (isset($_REQUEST['limit' ]) && is_numeric($_REQUEST['limit' ])) ? $_REQUEST['limit' ] : 10;
+			$offset = (isset($_REQUEST['offset']) && is_numeric($_REQUEST['offset'])) ? $_REQUEST['offset'] :  0;
+
+			require_once('../../wp-blog-header.php');
+			get_header();
+			echo '<div id="content" class="narrowcolumn">';
+
+			if (isset($_REQUEST['title'])) {
+				echo '<h2>' . $_REQUEST['title'] . '</h2>';
+			} else {
+				echo '<h2>Miniblog Archive</h2>';
+			}
+
+			/* display only a specific category */
+			if (isset($_REQUEST['category'])) {
+
+				miniblog_list_entries('<p><strong>', '</strong><blockquote>', '</blockquote></p>', $_REQUEST['category'], $limit, $offset, $sortby);
+
+			} else {
+
+				/* Display All categories */
+				echo 'Categories:';
+				$results = $wpdb->get_results('SELECT DISTINCT blog FROM `' . $table_prefix . 'miniblog`');
+				if ($results) {
+					$cnt = count($results);
+					for ($i = 0; $i < $cnt; $i++) {
+						echo ' <a href=" ' . miniblog_create_archive_url($limit, 0, $results[$i]->blog) .'">' . $results[$i]->blog . '</a> ';
+					}
+				}
+
+				miniblog_list_entries('<p><strong>', '</strong><blockquote>', '</blockquote></p>', '', $limit, $offset, $sortby);
+			}
+
+
+			/* next/prev links */
+			$sql = 'SELECT * FROM `' . $table_prefix . 'miniblog`';
+			if (isset($_REQUEST['category'])) {
+				$sql = $sql . " WHERE blog like '" . $_REQUEST['category'] . "'";
+			}
+
+			echo '<table border="0" width="100%"><tr><td width="50%" align="left">';
+
+			$results = $wpdb->get_results($sql);
+			if ($results) {
+				$cnt = count($results);
+			}
+
+			if ($results && $offset > 0) {
+				if (isset($_REQUEST['category'])) {
+					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0, $_REQUEST['category']) . '">Previous Page</a>';
+				} else {
+					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0) . '">Previous Page</a>';
+				}
+			}
+			echo '&nbsp;</td><td width="50%" align="right">&nbsp;';
+			if ($results && $cnt > ($offset+$limit)) {
+				if (isset($_REQUEST['category'])) {
+					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit, $_REQUEST['category']) . '">Next Page</a>';
+				} else {
+					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit) . '">Next Page</a>';
+				}
+			}
+			echo '</td></tr><tr><td colspan="2" align="center">';
+			echo '<small>Powered by <a href="http://mediumbagel.org/?page_id=16">Miniblog</a></small>';
+			echo '</td></tr></table></div>';
+			get_sidebar();
+			get_footer();
 		}
 	}
 }
