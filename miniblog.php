@@ -3,7 +3,7 @@
 Plugin Name: Miniblog
 Plugin URI: http://mediumbagel.org/?page_id=16
 Description: Allows miniature blogs, links, notes, asides, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated. This plugin was originally authored by <a href="http://www.nmyworld.com/">Ryan Poe</a>.
-Version: 0.10
+Version: 0.11
 Author: Thomas Cort
 Author URI: http://mediumbagel.org/
 */
@@ -91,8 +91,12 @@ if(!function_exists('miniblog_list_entries')) {
 			}
 
 			if(trim($entry->text)) {
-				echo $between;
-				echo str_replace("\n" , '', $entry->text);
+				if (strtolower($between) == strtolower('<none>')) {
+					echo str_replace("<p>" , '', str_replace("</p>" , '', $entry->text));
+				} else {
+					echo $between;
+					echo str_replace("\n" , '', $entry->text);
+				}
 			}
 
 			echo $after . "\n";
@@ -408,7 +412,7 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 					<p><strong>Parameters</strong>:
 						<ol>
 							<li><strong>Before</strong>: text to display before every entry's title link. Default is '&lt;li&gt;'.</li>
-							<li><strong>Between</strong>: text to display between every entry's title link and text. Default is '&lt;br /&gt;'.</li>
+							<li><strong>Between</strong>: text to display between every entry's title link and text. Default is '&lt;br /&gt;'. To make the entry text appear on the same line as the title, set this parameter to '&lt;none&gt;'.</li>
 							<li><strong>After</strong>: text to display after every entry's text. Default is '&lt;/li&gt;'.</li>
 							<li><strong>Blog Identifier</strong>: this determines which entries to call specified
 								by an entry's "Blog Identifier" field. This can be any text string. To retrieve all
@@ -454,7 +458,7 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 							<code>
 								</span><span style="color:#007700">&lt;</span><span style="color:#0000BB">h2</span><span style="color:#007700">&gt;</span><span style="color:#0000BB">Asides</span><span style="color:#007700">&lt;/</span><span style="color:#0000BB">h2</span><span style="color:#007700">&gt;
 								<br />&lt;</span><span style="color:#0000BB">ul</span><span style="color:#007700">&gt;
-								<br />&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_list_entries" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_list_entries">miniblog_list_entries</a></span><span style="color:#007700">(</span><span style="color:#DD0000">'&lt;li&gt;&lt;strong&gt;'</span><span style="color:#007700">, </span><span style="color:#DD0000">'&lt;/strong&gt;&lt;blockquote&gt;'</span><span style="color:#007700">, </span><span style="color:#DD0000">'&lt;/blockquote&gt;&lt;/li&gt;'</span><span style="color:#007700">, </span><span style="color:#DD0000">'aside'</span><span style="color:#007700">, </span><span style="color:#0000BB">10</span><span style="color:#007700">);
+								<br />&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for miniblog_list_entries" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_list_entries">miniblog_list_entries</a></span><span style="color:#007700">(</span><span style="color:#DD0000">'&lt;li&gt;&lt;strong&gt;'</span><span style="color:#007700">, </span><span style="color:#DD0000">'&lt;/strong&gt;&lt;blockquote&gt;'</span><span style="color:#007700">, </span><span style="color:#DD0000">'&lt;/blockquote&gt;&lt;/li&gt;'</span><span style="color:#007700">, </span><span style="color:#DD0000">'aside'</span><span style="color:#007700">, </span><span style="color:#0000BB">10</span><span style="color:#007700">);</span> <span style="color:#0000BB">?&gt;</span><span style="color:#007700">
 								
 								<br />&lt;/</span><span style="color:#0000BB">ul</span><span style="color:#007700">&gt;</span>
 								</span>
