@@ -3,14 +3,14 @@
 Plugin Name: Miniblog
 Plugin URI: http://mediumbagel.org/?page_id=16
 Description: Allows miniature blogs, links, notes, asides, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated. This plugin was originally authored by <a href="http://www.nmyworld.com/">Ryan Poe</a>.
-Version: 0.11
+Version: 0.12
 Author: Thomas Cort
 Author URI: http://mediumbagel.org/
 */
 
 /* We always want to load these */
 if(!function_exists('miniblog_return_entries')) {
-	function miniblog_return_entries($limit = 5, $offset = 0, $identifier = '', $sortby = '_date', $filter = TRUE) {
+	function miniblog_return_entries($limit = 5, $offset = 0, $identifier = '', $sortby = '_date', $filter = TRUE, $full = 1) {
 		global $wpdb, $table_prefix;
 		
 		if(!is_numeric($offset)) {
@@ -46,7 +46,7 @@ if(!function_exists('miniblog_return_entries')) {
 						'miniblog ' . $identifier_q . ' ' . $sortby_q .
 						' LIMIT ' . $limit_q);
 	
-		if($results) {
+		if ($results) {
 			$cnt = count($results);
 			for($i = 0; $i < $cnt; $i++) {
 				$results[$i]->blog  = stripslashes($results[$i]->blog);
@@ -54,6 +54,15 @@ if(!function_exists('miniblog_return_entries')) {
 				$results[$i]->url   = stripslashes($results[$i]->url);
 
 				if($results[$i]->text) {
+
+					if (preg_match('/\[readon\]/',$results[$i]->text) && $full == 0) {
+						$parts = preg_split('/\[readon\]/',$results[$i]->text);
+						$results[$i]->text = $parts[0] . '... <a href="' . 
+							miniblog_create_post_url($results[$i]->id) . '">read on</a>.';
+					} else if ($full == 1) {
+						$results[$i]->text = preg_replace('/\[readon\]/','',$results[$i]->text);
+					}
+
 					if ($filter) {
 						$results[$i]->text = apply_filters('the_content', stripslashes($results[$i]->text));
 					} else {
@@ -71,10 +80,10 @@ if(!function_exists('miniblog_return_entries')) {
 
 /* Simple, beginner-friendly (not to mention smart) version of the above function */
 if(!function_exists('miniblog_list_entries')) {
-	function miniblog_list_entries($before = '<li>', $between = '<br />', $after = '</li>', $identifier = '', $limit = 5, $offset = 0, $sortby = '_date', $filter = TRUE) {
+	function miniblog_list_entries($before = '<li>', $between = '<br />', $after = '</li>', $identifier = '', $limit = 5, $offset = 0, $sortby = '_date', $filter = TRUE, $full = 1) {
 		$entries = array();
 		$entry   = '';
-		$entries = miniblog_return_entries($limit, $offset, $identifier, $sortby, $filter);
+		$entries = miniblog_return_entries($limit, $offset, $identifier, $sortby, $filter, $full);
 
 		foreach($entries as $entry) {
 			$date = date("F j, Y", strtotime($entry->date));
@@ -125,7 +134,7 @@ if(!function_exists('miniblog_create_rss_url')) {
 
 /* Creates the Archive URL to use in the href="" tag */
 if(!function_exists('miniblog_create_archive_url')) {
-	function miniblog_create_archive_url($limit = 10, $offset = 0, $identifier = '', $sortby = '_date', $title = '', $before = '<li>', $between = '<br />', $after = '</li>') {
+	function miniblog_create_archive_url($limit = 10, $offset = 0, $identifier = '', $sortby = '_date', $title = '', $before = '<li>', $between = '<br />', $after = '</li>', $full = 1) {
 		/* Get the blog URL */
 		ob_start();
 		bloginfo('url');
@@ -140,6 +149,7 @@ if(!function_exists('miniblog_create_archive_url')) {
 		$url = $url . '&amp;before=' . htmlentities(urlencode($before));
 		$url = $url . '&amp;between=' . htmlentities(urlencode($between));
 		$url = $url . '&amp;after=' . htmlentities(urlencode($after));
+		$url = $url . '&amp;full=' . $full;
 		return $url;
 	}
 }
@@ -367,9 +377,9 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 					your version of WordPress. The latest version can be found at the following URL: <a href="http://mediumbagel.org/?page_id=16">http://mediumbagel.org/?page_id=16</a>. This plugin was orignally 
 					written by <a href="http://www.nmyworld.com/">Ryan Poe</a>. Development and support was taken over by <a href="http://mediumbagel.org">Thomas Cort</a> in July 2005.</p>
 					<h3><?php _e('What is it?'); ?></h3>
-					<p>Miniblog is a plugin for Wordpress 1.5+ (and maybe lower). It is:
+					<p>Miniblog is a plugin for Wordpress 1.5 and 2.0. It is:
 						<ul>
-							<li>Light-weight. Only one table is needed for each WordPress install on which
+							<li>Light-weight. Only one database table is needed for each WordPress install on which
 								you wish to install this plugin. This also makes uninstalling it as simple
 								as installing it. The entire plugin consists of only one file, as well, making
 								is easy to install.</li>
@@ -400,6 +410,12 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 					The format is Year-Month-Day Hour:Minute:Second (military time).</p>
 					<a name="timestampfield"></a><h3><?php _e('Post'); ?></h3>
 					<p>This field is the content of the entry. It is passed through the_content's filters.</p>
+					<a name="timestampfield"></a><h3><?php _e('Read on'); ?></h3>
+					<p>Miniblog allows you to display part of a post with a "read on" link that links to the rest of
+					the post. To use this feature you must do two things. First, when you use functions like 
+					miniblog_list_entries(...) or miniblog_return_entries(...) you must set the <b>full</b> parameter 
+					to 0. This enables the "read on" feature. Second, just put "[readon]" (without quotes) in the text
+					of your post where you want the "read on" link to appear.</p>
 					<h2><?php _e('Usage in Templates'); ?></h2>
 					<p>This section demonstrates how one can use the entries saved in their templates.</p>
 					<h3><?php _e('miniblog_list_entries(...)'); ?></h3>
@@ -438,6 +454,10 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 							<li><strong>Filter Text</strong>: this boolean option determines rather or not to filter the entry's
 								text through the_content's filters. This is useful to set to false if you want to use ad plugins
 								that apply a filter to the_content to show relevant ads. Default is FALSE.
+							</li>
+							<li><strong>Full</strong>: this option determines if the full text of posts should be displayed 
+							regardless of [readon] tags, or if posts should be truncated at the [readon] tag. Default is 1 for use 
+							full text (ie ignore [readon] tags in posts). Set it to 0 to enable the "read on" feature.
 							</li>
 						</ol>
 					</p>
@@ -496,10 +516,15 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 									Default is '_date.'
 								</p>
 							</li>
-								<li><strong>Filter Text</strong>: this boolean option determines rather or not to filter the entry's
+							<li><strong>Filter Text</strong>: this boolean option determines rather or not to filter the entry's
 								text through the_content's filters. This is useful to set to false if you want to use ad plugins
 								that apply a filter to the_content to show relevant ads. Default is FALSE.
 							</li>
+							<li><strong>Full</strong>: this option determines if the full text of posts should be displayed 
+								regardless of [readon] tags, or if posts should be truncated at the [readon] tag. Default is 1 for use 
+								full text (ie ignore [readon] tags in posts). Set it to 0 to enable the "read on" feature.
+							</li>
+
 						</ol>
 					</p>
 					<p>The array for each entry contains an object that can be accessed by calling the following methods.
@@ -614,6 +639,10 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 							<li><strong>Before</strong>: text to display before every entry's title link. Default is '&lt;li&gt;'.</li>
 							<li><strong>Between</strong>: text to display between every entry's title link and text. Default is '&lt;br /&gt;'.</li>
 							<li><strong>After</strong>: text to display after every entry's text. Default is '&lt;/li&gt;'.</li>
+							<li><strong>Full</strong>: this option determines if the full text of posts should be displayed 
+							regardless of [readon] tags, or if posts should be truncated at the [readon] tag. Default is 1 for use 
+							full text (ie ignore [readon] tags in posts). Set it to 0 to enable the "read on" feature.
+							</li>
 						</ol>
 					</p>
 					<p>Examples: <br />
@@ -675,7 +704,7 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 						`url` text NOT NULL,
 						`text` text NOT NULL,
 						FULLTEXT (`blog`),
-						PRIMARY KEY  (`id`))');
+						PRIMARY KEY  (`id`)) ENGINE=MYISAM');
 
 				/* If the user requested to uninstall */
 				if($_POST['delstring'] == 'Remove Thyself') {
@@ -913,6 +942,9 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 					}
 
 					echo '</strong><blockquote>'; 
+
+					$entry->text = preg_replace('/\[readon\]/','',$entry->text);
+
 					if(trim($entry->text)) {
 						$text = str_replace("\n" , '', $entry->text);
 						echo stripslashes($text);
@@ -936,6 +968,7 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			$before = isset($_REQUEST['before']) ? $_REQUEST['before'] : '<p><strong>';
 			$between= isset($_REQUEST['between']) ? $_REQUEST['between'] : '</strong><blockquote>';
 			$after  = isset($_REQUEST['after']) ? $_REQUEST['after'] : '</blockquote></p>';
+			$full   = isset($_REQUEST['full']) && is_numeric($_REQUEST['full']) ? $_REQUEST['full'] : 1;
 
 
 			require_once('../../wp-blog-header.php');
@@ -951,7 +984,7 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			/* display only a specific category */
 			if (isset($_REQUEST['category'])) {
 
-				miniblog_list_entries($before,$between,$after,$_REQUEST['category'], $limit, $offset, $sortby);
+				miniblog_list_entries($before, $between, $after, $_REQUEST['category'], $limit, $offset, $sortby, FALSE, $full);
 
 			} else {
 
@@ -961,11 +994,11 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 				if ($results) {
 					$cnt = count($results);
 					for ($i = 0; $i < $cnt; $i++) {
-						echo ' <a href=" ' . miniblog_create_archive_url($limit, 0, $results[$i]->blog, $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive',$before, $between, $after) .'">' . $results[$i]->blog . '</a> ';
+						echo ' <a href=" ' . miniblog_create_archive_url($limit, 0, $results[$i]->blog, $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive',$before, $between, $after, $full) .'">' . $results[$i]->blog . '</a> ';
 					}
 				}
 
-				miniblog_list_entries($before, $between, $after, '', $limit, $offset, $sortby);
+				miniblog_list_entries($before, $between, $after, '', $limit, $offset, $sortby, FALSE, $full);
 			}
 
 
@@ -984,22 +1017,23 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 
 			if ($results && $offset > 0) {
 				if (isset($_REQUEST['category'])) {
-					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after) . '">Previous Page</a>';
+					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after, $full) . '">Previous Page</a>';
 				} else {
-					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after) . '">Previous Page</a>';
+					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after, $full) . '">Previous Page</a>';
 				}
 			}
 			echo '&nbsp;</td><td width="50%" align="right">&nbsp;';
 			if ($results && $cnt > ($offset+$limit)) {
 				if (isset($_REQUEST['category'])) {
-					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after) . '">Next Page</a>';
+					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after, $full) . '">Next Page</a>';
 				} else {
-					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive',$before, $between, $after) . '">Next Page</a>';
+					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive',$before, $between, $after, $full) . '">Next Page</a>';
 				}
 			}
 			echo '</td></tr><tr><td colspan="2" align="center">';
 			echo '<small>Powered by <a href="http://mediumbagel.org/?page_id=16">Miniblog</a></small>';
 			echo '</td></tr></table></div>';
+
 			get_sidebar();
 			get_footer();
 		}
