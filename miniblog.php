@@ -3,7 +3,7 @@
 Plugin Name: Miniblog
 Plugin URI: http://mediumbagel.org/?page_id=16
 Description: Allows miniature blogs, links, notes, asides, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated. This plugin was originally authored by <a href="http://www.nmyworld.com/">Ryan Poe</a>.
-Version: 0.12
+Version: 0.13
 Author: Thomas Cort
 Author URI: http://mediumbagel.org/
 */
@@ -1034,7 +1034,6 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			echo '<small>Powered by <a href="http://mediumbagel.org/?page_id=16">Miniblog</a></small>';
 			echo '</td></tr></table></div>';
 
-			get_sidebar();
 			get_footer();
 		}
 	}
