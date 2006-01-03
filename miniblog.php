@@ -1,11 +1,11 @@
 <?php
 /*
 Plugin Name: Miniblog
-Plugin URI: http://www.nmyworld.com/wordpress/category/wordpress/
-Description: Allows miniature blogs, links, notes, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated.
-Author: Ryan Poe
-Version: 0.5
-Author URI: http://www.nmyworld.com/
+Plugin URI: http://mediumbagel.org/?page_id=16
+Description: Allows miniature blogs, links, notes, asides, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated. This plugin was originally authored by <a href="http://www.nmyworld.com/">Ryan Poe</a>.
+Author: Thomas Cort <http://mediumbagel.org>
+Version: 0.6
+Author URI: http://mediumbagel.org/
 */
 
 /* We always want to load these */
@@ -136,7 +136,7 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 					<a href="post.php?page=<?php echo basename(__FILE__); ?>">Write new post</a> |
 					<a href="#list">Edit posts</a> |
 					<a href="#docs">Documentation and Help</a> |
-					<a href="http://www.nmyworld.com/wordpress/2005/03/miniblog-plugin-01-for-wordpress-15-58/">Check for Updates</a> |
+					<a href="http://mediumbagel.org/?page_id=16">Check for Updates</a> |
 					<a href="#uninstall">Uninstall</a>
 				</div>
 				
@@ -290,7 +290,8 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 				<div class="wrap">
 					<a name="docs"></a><h2><?php _e('Documentation'); ?></h2>
 					<p>Welcome to Miniblog! Make sure you have the latest version, or it may not work with
-					your version of WordPress.</p>
+					your version of WordPress. The latest version can be found at the following URL: <a href="http://mediumbagel.org/?page_id=16">http://mediumbagel.org/?page_id=16</a>. This plugin was orignally 
+					written by <a href="http://www.nmyworld.com/">Ryan Poe</a>. Development and support was taken over by <a href="http://mediumbagel.org">Thomas Cort</a> in July 2005.</p>
 					<h3><?php _e('What is it?'); ?></h3>
 					<p>Miniblog is a plugin for Wordpress 1.5+ (and maybe lower). It is:
 						<ul>
@@ -486,7 +487,9 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 					</p>
 					<h3><?php _e('miniblog_create_rss_url(...)'); ?></h3>
 					<p>
-					This function returns a URL to an RSS feed specified by the parameters entered.
+					This function returns a URL to an RSS 2.0 feed specified by the parameters 
+					entered. Miniblog also supports RSS 0.92. To link to an RSS 0.92 feed you 
+					must append "&amp;v=0.92" to the result from miniblog_create_rss_url(...).
 					The parameters are exactly the same as the parameters of miniblog_return_entries() with two note-worthy exceptions:
 						<ol>
 							<li><strong>Limit</strong>...</li>
@@ -507,7 +510,8 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 					<p>Examples: <br />
 						<p class="code">
 							<code>
-								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_rss_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_rss_url">miniblog_create_rss_url</a></span><span style="color:#007700">()); </span><span style="color:#0000BB">?&gt;</span>"&gt;Miniblog RSS&lt;/a&gt;</span>
+								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_rss_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_rss_url">miniblog_create_rss_url</a></span><span style="color:#007700">()); </span><span style="color:#0000BB">?&gt;</span>"&gt;Miniblog RSS 2.0&lt;/a&gt;</span><br />
+								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_rss_url"  href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_rss_url">miniblog_create_rss_url</a></span><span style="color:#007700">()); </span><span style="color:#0000BB">?&gt;</span>&amp;amp;v=0.92"&gt;Miniblog RSS 0.92&lt;/a&gt;</span>
 							</code>
 							<p>This example will simply display the latest 5 miniblog entries that you've posted
 							with your site's title and description as the feed's description.</p>
@@ -681,10 +685,12 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			/* Get the blog name and description (stupid stupid WordPress making me do this) */
 			ob_start();
 			bloginfo('name');
-			$blog_name = ob_get_clean();
+			$blog_name = ob_get_contents();
+			ob_end_clean();
 			ob_start();
 			bloginfo('description');
-			$blog_description = ob_get_clean();
+			$blog_description = ob_get_contents();
+			ob_end_clean();
 			
 			/* Return to sanity */
 			$number = $_GET['n'];
@@ -707,26 +713,71 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			}
 			
 			/* Render the RSS */
-			header('Content-type: text/xml; charset=' . get_settings('blog_charset'), true);
+			header('Content-type: text/xml; charset=' . get_settings('blog_charset'), true); 
 			echo "<?xml version=\"1.0\" encoding=\"" . get_settings('blog_charset') . "\"?>\n";
-			echo "<rss version=\"0.92\">\n";
-			echo "\t<channel>\n";
-			echo "\t\t<title>" . miniblog_clean_var($title) . "</title>\n";
-			echo "\t\t<link>";
-			bloginfo('url');
-			echo "</link>\n";
-			echo "\t\t<description>" . miniblog_clean_var($descriptions) . "</description>\n";
-			echo "\t\t<docs>http://backend.userland.com/rss092</docs>\n";
-			$entries = miniblog_return_entries($number, $offset, $blog_term, $sort_by, FALSE);
-			foreach($entries as $entry) {
-				echo "\t\t<item>\n";
-				echo "\t\t\t<title>" . miniblog_clean_var($entry->title) . "</title>\n";
-				echo "\t\t\t<description>" . miniblog_clean_var($entry->text) . "</description>\n";
-				echo "\t\t\t<link>" . miniblog_clean_var($entry->url) . "</link>\n";
-				echo "\t\t</item>\n";
+
+			/* Modifications by Glenn Slaven 2005-06-20; added RSS 2.0 and fixed a duplicate entry bug */
+			switch ($_GET['v']) {
+				case '0.92':
+					echo "<rss version=\"0.92\">\n";
+					echo "\t<channel>\n";
+					echo "\t\t<title>" . miniblog_clean_var($title) . "</title>\n";
+					echo "\t\t<link>";
+
+					bloginfo('url');
+
+					echo "</link>\n";
+					echo "\t\t<description>" . miniblog_clean_var($descriptions) . "</description>\n";
+					echo "\t\t<docs>http://backend.userland.com/rss092</docs>\n";
+
+					$entries = miniblog_return_entries($number, $offset, $blog_term, $sort_by, FALSE);
+
+					foreach($entries as $entry) {
+						echo "\t\t<item>\n"; 
+						echo "\t\t\t<title>" . miniblog_clean_var($entry->title) . "</title>\n";
+						echo "\t\t\t<description>" . miniblog_clean_var($entry->text) . "</description>\n";
+
+						if (miniblog_clean_var($entry->url)) {
+							echo "\t\t\t<link><![CDATA[" . miniblog_clean_var($entry->url) . "]]></link>\n";
+						}
+
+						echo "\t\t</item>\n";
+					}
+
+					break;
+
+				default /* RSS 2.0 */:
+					echo "<rss version=\"2.0\">\n";
+					echo "\t<channel>\n";
+					echo "\t\t<title>" . miniblog_clean_var($title) . "</title>\n";
+					echo "\t\t<link>";
+
+					bloginfo('url');
+
+					echo "</link>\n";
+					echo "\t\t<description>" . miniblog_clean_var($descriptions) . "</description>\n";
+					echo "\t\t<docs>http://blogs.law.harvard.edu/tech/rss</docs>\n";
+
+					$entries = miniblog_return_entries($number, $offset, $blog_term, $sort_by, FALSE);
+
+					foreach($entries as $entry) {
+
+						echo "\t\t<item>\n";
+						echo "\t\t\t<title>" . miniblog_clean_var($entry->title) . "</title>\n"; 
+						echo "\t\t\t<description>" . miniblog_clean_var($entry->text) . "</description>\n";
+						echo "\t\t\t<pubDate>".mysql2date('D, d M Y H:i:s O', $entry->date, false)."</pubDate>\n";
+
+						if (miniblog_clean_var($entry->url)) {
+							echo "\t\t\t<link><![CDATA[" . miniblog_clean_var($entry->url) . "]]></link>\n"; 
+						}
+
+						echo "\t\t</item>\n"; 
+					}
 			}
+
 			echo "\t</channel>\n";
-			echo "</rss>";
+			print "</rss>"; 
+
 		}
 	}
 }
