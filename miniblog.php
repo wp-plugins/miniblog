@@ -3,7 +3,7 @@
 Plugin Name: Miniblog
 Plugin URI: http://mediumbagel.org/?page_id=16
 Description: Allows miniature blogs, links, notes, asides, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated. This plugin was originally authored by <a href="http://www.nmyworld.com/">Ryan Poe</a>.
-Version: 0.8
+Version: 0.9
 Author: Thomas Cort
 Author URI: http://mediumbagel.org/
 */
@@ -133,6 +133,22 @@ if(!function_exists('miniblog_create_archive_url')) {
 		$url = ($identifier != '') ? $url . '&amp;category=' . htmlentities(urlencode($identifier)) : $url;
 		$url = $url . "&amp;sortby=" . htmlentities(urlencode($sortby));
 		$url = ($title != '') ? $url . '&amp;title=' . htmlentities(urlencode($title)) : $url;
+
+		return $url;
+	}
+}
+
+/* Creates the Single Post URL to use in the href="" tag */
+if(!function_exists('miniblog_create_post_url')) {
+	function miniblog_create_post_url($postid) {
+		/* Get the blog URL */
+		ob_start();
+		bloginfo('url');
+		$url = ob_get_clean();
+		
+		/* Build new URL */
+		$url = $url . '/wp-content/plugins/' . basename(__FILE__);
+		$url = $url . '?action=single_post&amp;postid=' . $postid;
 
 		return $url;
 	}
@@ -603,6 +619,20 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 							</code>
 						</p>
 					</p>
+					<h3><?php _e('miniblog_create_post_url(...)'); ?></h3>
+					<p>
+					This function returns a URL to a single post specified by the postid parameter. See the "Post List" at the top of the page for a list of ID numbers.
+						<ol>
+							<li><strong>ID</strong>: The post ID number.</li>
+						</ol>
+					</p>
+					<p>Example: <br />
+						<p class="code">
+							<code>
+								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_post_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_post_url">miniblog_create_post_url</a></span><span style="color:#007700">(22)); </span><span style="color:#0000BB">?&gt;</span>"&gt;My Post About Cheese&lt;/a&gt;</span><br />
+							</code>
+						</p>
+					</p>
 				</div>
 				
 				<div class="wrap">
@@ -833,6 +863,55 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 
 			echo "\t</channel>\n";
 			print "</rss>"; 
+
+		} else if ($_REQUEST['action'] == "single_post") {
+			global $wpdb, $table_prefix;
+
+			require_once('../../wp-blog-header.php');
+			get_header();
+			echo '<div id="content" class="narrowcolumn">';
+
+			$postid = (isset($_REQUEST['postid']) && is_numeric($_REQUEST['postid'])) ? $_REQUEST['postid'] : -1;
+
+			if ($postid < 0) {
+				echo '<h2>Invalid Post</h2>';
+			} else {
+				$sql  = 'SELECT * FROM `' . $table_prefix . 'miniblog` ';
+				$sql .= "WHERE id = '$postid'";
+
+				$results = $wpdb->get_results($sql);
+
+				if ($results) {
+
+					$entry = $results[0];
+
+					$date = date("F j, Y", strtotime($entry->date));
+					echo '<p><strong>';
+
+					if ($entry->title && $entry->url) {
+						echo '<a href="' . stripslashes($entry->url) . '">' . stripslashes($entry->title) . '</a>';
+					} elseif ($entry->title) {
+						echo stripslashes($entry->title);
+					} elseif ($entry->url) {
+						echo '<a href="' . stripslashes($entry->url) . '">' . $date . '</a>';
+					} else {
+						echo $date;
+					}
+
+					echo '</strong><blockquote>'; 
+					if(trim($entry->text)) {
+						$text = str_replace("\n" , '', $entry->text);
+						echo stripslashes($text);
+					}
+
+					echo '</blockquote></p>';
+				} else {
+					echo '<h2>Invalid Post</h2>';
+				}
+			}
+			echo '</div>';
+			get_sidebar();
+			get_footer();
 
 		} else if ($_REQUEST['action'] == "archive") {
 			global $wpdb, $table_prefix;
