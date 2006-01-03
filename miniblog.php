@@ -3,7 +3,7 @@
 Plugin Name: Miniblog
 Plugin URI: http://mediumbagel.org/?page_id=16
 Description: Allows miniature blogs, links, notes, asides, or whatever to be created. The menu, functionality, and documentation can be found in the Write : Miniblog menu once the plugin is activated. This plugin was originally authored by <a href="http://www.nmyworld.com/">Ryan Poe</a>.
-Version: 0.9
+Version: 0.10
 Author: Thomas Cort
 Author URI: http://mediumbagel.org/
 */
@@ -121,7 +121,7 @@ if(!function_exists('miniblog_create_rss_url')) {
 
 /* Creates the Archive URL to use in the href="" tag */
 if(!function_exists('miniblog_create_archive_url')) {
-	function miniblog_create_archive_url($limit = 10, $offset = 0, $identifier = '', $sortby = '_date', $title = '') {
+	function miniblog_create_archive_url($limit = 10, $offset = 0, $identifier = '', $sortby = '_date', $title = '', $before = '<li>', $between = '<br />', $after = '</li>') {
 		/* Get the blog URL */
 		ob_start();
 		bloginfo('url');
@@ -133,7 +133,9 @@ if(!function_exists('miniblog_create_archive_url')) {
 		$url = ($identifier != '') ? $url . '&amp;category=' . htmlentities(urlencode($identifier)) : $url;
 		$url = $url . "&amp;sortby=" . htmlentities(urlencode($sortby));
 		$url = ($title != '') ? $url . '&amp;title=' . htmlentities(urlencode($title)) : $url;
-
+		$url = $url . '&amp;before=' . htmlentities(urlencode($before));
+		$url = $url . '&amp;between=' . htmlentities(urlencode($between));
+		$url = $url . '&amp;after=' . htmlentities(urlencode($after));
 		return $url;
 	}
 }
@@ -605,6 +607,9 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 							<li><strong>Blog Identifier</strong>: this determines which entries to call specificied by an entry's "Blog Identifier" field. This can be any text string. To retrieve all field, leave blank (''). Default is blank ('').</li>
 							<li><strong>Sort Field</strong>: this is the field that determines the order in which entries are returned. Prepending an underscore (_) to the parameter sorts the entries descending (latest first) as opposed to ascending (earliest first).</li>
 							<li><strong>Title</strong>: this is the field that determines the title to use on the archive page. Default is Miniblog Archive.</li>
+							<li><strong>Before</strong>: text to display before every entry's title link. Default is '&lt;li&gt;'.</li>
+							<li><strong>Between</strong>: text to display between every entry's title link and text. Default is '&lt;br /&gt;'.</li>
+							<li><strong>After</strong>: text to display after every entry's text. Default is '&lt;/li&gt;'.</li>
 						</ol>
 					</p>
 					<p>Examples: <br />
@@ -616,6 +621,11 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 						<p class="code">
 							<code>
  								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_archive_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_archive_url">miniblog_create_archive_url</a></span><span style="color:#007700">(</span><span style="color:#0000BB">5</span><span style="color:#007700">, </span><span style="color:#0000BB">0</span><span style="color:#007700">, </span><span style="color:#DD0000">'aside'</span><span style="color:#007700">, </span><span style="color:#DD0000">'_date'</span><span style="color:#007700">, </span><span style="color:#DD0000">'Asides Archive'</span><span style="color:#007700">)</span><span style="color:#007700">); </span><span style="color:#0000BB">?&gt;</span>"&gt;Asides Archive&lt;/a&gt;</span>
+							</code>
+						</p>
+						<p class="code">
+							<code>
+ 								<span style="color:#000000">&lt;a href="<span style="color:#0000BB">&lt;?php <a class="code" title="View manual page for _e" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=_e">_e</a></span><span style="color:#007700">(</span><span style="color:#0000BB"><a class="code" title="View manual page for miniblog_create_archive_url" href="http://www.php.net/manual-lookup.php?lang=en&amp;pattern=miniblog_create_archive_url">miniblog_create_archive_url</a></span><span style="color:#007700">(</span><span style="color:#0000BB">5</span><span style="color:#007700">, </span><span style="color:#0000BB">0</span><span style="color:#007700">, </span><span style="color:#DD0000">'aside'</span><span style="color:#007700">, </span><span style="color:#DD0000">'_date'</span><span style="color:#007700">, </span><span style="color:#DD0000">'Asides Archive'</span><span style="color:#007700">, </span><span style="color:#DD0000">'&lt;li&gt;'</span><span style="color:#007700">, </span><span style="color:#DD0000">'&lt;br /&gt;'</span><span style="color:#007700">, </span><span style="color:#DD0000">'&lt;/li&gt;'</span><span style="color:#007700">)</span><span style="color:#007700">); </span><span style="color:#0000BB">?&gt;</span>"&gt;Asides Archive&lt;/a&gt;</span>
 							</code>
 						</p>
 					</p>
@@ -919,6 +929,10 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			$sortby =  isset($_REQUEST['sortby']) ? $_REQUEST['sortby'] : '_date';
 			$limit  = (isset($_REQUEST['limit' ]) && is_numeric($_REQUEST['limit' ])) ? $_REQUEST['limit' ] : 10;
 			$offset = (isset($_REQUEST['offset']) && is_numeric($_REQUEST['offset'])) ? $_REQUEST['offset'] :  0;
+			$before = isset($_REQUEST['before']) ? $_REQUEST['before'] : '<p><strong>';
+			$between= isset($_REQUEST['between']) ? $_REQUEST['between'] : '</strong><blockquote>';
+			$after  = isset($_REQUEST['after']) ? $_REQUEST['after'] : '</blockquote></p>';
+
 
 			require_once('../../wp-blog-header.php');
 			get_header();
@@ -933,7 +947,7 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 			/* display only a specific category */
 			if (isset($_REQUEST['category'])) {
 
-				miniblog_list_entries('<p><strong>', '</strong><blockquote>', '</blockquote></p>', $_REQUEST['category'], $limit, $offset, $sortby);
+				miniblog_list_entries($before,$between,$after,$_REQUEST['category'], $limit, $offset, $sortby);
 
 			} else {
 
@@ -943,11 +957,11 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 				if ($results) {
 					$cnt = count($results);
 					for ($i = 0; $i < $cnt; $i++) {
-						echo ' <a href=" ' . miniblog_create_archive_url($limit, 0, $results[$i]->blog) .'">' . $results[$i]->blog . '</a> ';
+						echo ' <a href=" ' . miniblog_create_archive_url($limit, 0, $results[$i]->blog, $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive',$before, $between, $after) .'">' . $results[$i]->blog . '</a> ';
 					}
 				}
 
-				miniblog_list_entries('<p><strong>', '</strong><blockquote>', '</blockquote></p>', '', $limit, $offset, $sortby);
+				miniblog_list_entries($before, $between, $after, '', $limit, $offset, $sortby);
 			}
 
 
@@ -966,17 +980,17 @@ if(strpos($_SERVER['PHP_SELF'], 'wp-admin') !== FALSE) {
 
 			if ($results && $offset > 0) {
 				if (isset($_REQUEST['category'])) {
-					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0, $_REQUEST['category']) . '">Previous Page</a>';
+					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after) . '">Previous Page</a>';
 				} else {
-					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0) . '">Previous Page</a>';
+					echo '<a href="' . miniblog_create_archive_url($limit, ($offset - $limit > 0) ? $offset - $limit : 0, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after) . '">Previous Page</a>';
 				}
 			}
 			echo '&nbsp;</td><td width="50%" align="right">&nbsp;';
 			if ($results && $cnt > ($offset+$limit)) {
 				if (isset($_REQUEST['category'])) {
-					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit, $_REQUEST['category']) . '">Next Page</a>';
+					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive', $before, $between, $after) . '">Next Page</a>';
 				} else {
-					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit) . '">Next Page</a>';
+					echo '<a href="' . miniblog_create_archive_url($limit, $offset + $limit, $_REQUEST['category'], $sortby, isset($_REQUEST['title']) ? $_REQUEST['title'] : 'Miniblog Archive',$before, $between, $after) . '">Next Page</a>';
 				}
 			}
 			echo '</td></tr><tr><td colspan="2" align="center">';
